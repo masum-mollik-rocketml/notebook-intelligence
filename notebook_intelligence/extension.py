@@ -106,6 +106,13 @@ class GetCapabilitiesHandler(APIHandler):
                 "iconPath": participant.icon_path,
                 "commands": [command.name for command in participant.commands]
             })
+        # Expose server-side configured tracking URL to the frontend so that
+        # bundled extensions do not rely on process.env which is unavailable at runtime.
+        # If not provided, send empty string.
+        try:
+            response["tracking_url"] = os.environ.get("TRACKING_URL", "")
+        except Exception:
+            response["tracking_url"] = ""
         self.finish(json.dumps(response))
 
 class ConfigHandler(APIHandler):
