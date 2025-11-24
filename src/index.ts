@@ -1145,9 +1145,18 @@ const plugin: JupyterFrontEndPlugin<INotebookIntelligence> = {
     });
 
     // MLflow helpers
-    const mlflowBase = process.env.TRACKING_URL + '/ajax-api/2.0/mlflow';
+    // TRACKING_URL is provided by the Python backend in capabilities to avoid relying on
+    // process.env in the bundled frontend (which doesn't work at runtime).
+    const trackingUrl: string = (NBIAPI.config.capabilities?.tracking_url as string) || '';
+    const mlflowBase = trackingUrl
+      ? `${trackingUrl.replace(/\/?$/, '')}/ajax-api/2.0/mlflow`
+      : '';
 
     const searchRuns = async (payload: any): Promise<any[]> => {
+      if (!mlflowBase) {
+        console.warn('MLflow tracking_url is not configured on the server.');
+        return [];
+      }
       const resp = await fetch(`${mlflowBase}/runs/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1158,6 +1167,10 @@ const plugin: JupyterFrontEndPlugin<INotebookIntelligence> = {
     };
 
     const getExperimentMap = async (): Promise<Record<string, any>> => {
+      if (!mlflowBase) {
+        console.warn('MLflow tracking_url is not configured on the server.');
+        return {} as Record<string, any>;
+      }
       const resp = await fetch(
         `${mlflowBase}/experiments/search?max_results=20000`
       );
